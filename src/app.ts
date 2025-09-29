@@ -9,7 +9,12 @@ import { errorHandler } from './middlewares/errorHandler';
 export async function buildApp() {
   const app = express();
   app.use(helmet());
-  app.use(cors());
+  app.use(cors({
+    origin: ['http://localhost:4001'], // add your FE origin(s)
+    methods: ['GET','POST','PATCH','DELETE','OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: false, // flip to true only if you need cookies
+  }));
   app.use(express.json({ limit: '1mb' }));
   app.use(morgan('dev'));
 
