@@ -1,0 +1,96 @@
+{
+    "rule_id": "R01",
+    "name": "Active Ingredient Positioning",
+    "version": "1.0.0",
+    "direction": "bonus",
+    "max_points": 30,
+  
+    "actives_source": "cosing.manual_classification == 'active'",
+    "exceptions_source": "datasets/exceptions@1.0.0",
+    "exceptions_matching": "exact_name",
+  
+    "bucketing": {
+      "large_list_threshold": 15,
+      "large_list_scheme": {
+        "name": "thirds",
+        "awards": {
+          "top": 1.0,
+          "middle": 0.75,
+          "bottom": 0.50
+        }
+      },
+      "small_list_scheme": {
+        "name": "halves",
+        "awards": {
+          "first": 1.0,
+          "second": 0.75
+        }
+      },
+      "indexing": "zero_based",
+      "tie_breaks": "floor_division_boundaries"
+    },
+  
+    "scoring": {
+      "points_per_active_formula": "30 / count(actives_detected)",
+      "exceptions_full_points": true
+    },
+  
+    "unknowns_policy": "neutral",
+  
+    "explanations": {
+      "summary": "Awarded {awarded} / 30 for {n_actives} actives (X = {x_points}). Exceptions full points: {exceptions_list}.",
+      "details": "Buckets: {bucket_counts}. List length: {list_length}."
+    },
+  
+    "examples": [
+      {
+        "case": "No actives",
+        "inci_length": 20,
+        "actives_detected": 0,
+        "expected_points": 0
+      },
+      {
+        "case": "One active in top third",
+        "inci_length": 21,
+        "active_positions_zero_based": [0],
+        "expected_points": 30
+      },
+      {
+        "case": "One active in middle third",
+        "inci_length": 21,
+        "active_positions_zero_based": [10],
+        "expected_points": 22.5
+      },
+      {
+        "case": "One active in bottom third",
+        "inci_length": 21,
+        "active_positions_zero_based": [18],
+        "expected_points": 15
+      },
+      {
+        "case": "Two actives (no exceptions), thirds",
+        "inci_length": 21,
+        "active_positions_zero_based": [0, 10],
+        "expected_points": 26.25,
+        "notes": "X=30/2=15; 15 (top) + 11.25 (middle)"
+      },
+      {
+        "case": "Two actives (halves)",
+        "inci_length": 12,
+        "active_positions_zero_based": [0, 11],
+        "expected_points": 26.25,
+        "notes": "X=15; first half=1.0*15, second=0.75*15"
+      },
+      {
+        "case": "Exception anywhere gets full X",
+        "inci_length": 21,
+        "active_positions_zero_based": [18, 10],
+        "exceptions_present": ["retinol"],
+        "expected_points": 26.25,
+        "notes": "X=15; retinol full 15, middle third 11.25"
+      }
+    ],
+  
+    "notes": "Actives are CosIng-matched ingredients with manual_classification == 'active'. Exceptions are matched by exact canonical name post-normalization (lowercase, trimmed). For multiple occurrences of the same ingredient, use its first index for bucketing."
+  }
+  

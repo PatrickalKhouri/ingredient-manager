@@ -8,6 +8,8 @@ export async function getCollections(): Promise<{
   matches: Collection;
   cosing: Collection;
   aliases: Collection;
+  productsScores: Collection;
+  scoringHistories: Collection;
 }> {
   const db = await getDb();
   return {
@@ -15,5 +17,8 @@ export async function getCollections(): Promise<{
     matches: db.collection(COLL.MATCHES),
     cosing: db.collection(COLL.COSING),
     aliases: db.collection(COLL.ALIASES),
+    productsScores: db.collection(COLL.PRODUCTS_SCORES),
+    scoringHistories: db.collection(COLL.SCORING_HISTORIES),
   } as const;
 }
+
