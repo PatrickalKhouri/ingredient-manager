@@ -27,12 +27,12 @@ import {
 } from '@mui/material';
 import { useRouter } from 'next/navigation';
 
-import { useGetUnmatchedIngredients, useManualMatch } from '@/queries/matches';
-import { useCreateAlias } from '@/queries/aliases';
-import { searchCosing } from '@/api/config';
-import { Suggestion, UnmatchedIngredient } from '@/types/matches';
+import { useGetUnmatchedIngredients, useManualMatch } from '../../queries/matches';
+import { useCreateAlias } from '../../queries/aliases';
+import { searchCosing } from '../../api/config';
+import { Suggestion, UnmatchedIngredient } from '../../types/matches';
 import SuggestionsCell from './SuggestionCell';
-import { useBrandsQuery } from '@/queries/products';
+import { useBrandsQuery } from '../../queries/products';
 
 // tiny debounce hook
 function useDebounced<T>(value: T, ms = 300) {

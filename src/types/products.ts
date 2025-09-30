@@ -49,7 +49,7 @@ export interface ProductsListResponse {
 
 // ✅ Product detail used by the Product page after the Mongo refactor
 // Stats fields are optional for now (you said we’ll add stats later)
-import type { MatchRow, UnmatchedRow, Suggestion } from '@/types/matches';
+import type { MatchRow, UnmatchedRow, Suggestion } from './matches';
 
 export interface ProductDetail {
   id: string;

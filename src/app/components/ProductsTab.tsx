@@ -26,7 +26,7 @@ import {
   FormControl,
   InputLabel,
 } from '@mui/material';
-import { useProductsQuery, useBrandsQuery } from '@/queries/products';
+import { useProductsQuery, useBrandsQuery } from '../../queries/products';
 
 export default function ProductsTab() {
   // pagination state

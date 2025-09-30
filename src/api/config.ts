@@ -1,11 +1,11 @@
-import { Suggestion, UnmatchedIngredientsParams } from '@/types/matches';
+import { Suggestion, UnmatchedIngredientsParams } from '../types/matches';
 import type {
   ProductListParams,
   ProductsListResponse,
   ProductDetail,
   ProductsMatchingSummary,
 } from '../types/products';
-import { MatchMethod } from '@/queries/matches';
+import { MatchMethod } from '../queries/matches';
 
 export const API = process.env.NEXT_PUBLIC_API_URL ?? '/api';
 

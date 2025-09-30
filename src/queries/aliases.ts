@@ -1,6 +1,6 @@
 // /queries/aliases.ts
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getAliases, createAlias, deleteAlias } from '@/api/config';
+import { getAliases, createAlias, deleteAlias } from '../api/config';
 
 const aliasKeys = {
   all: ['aliases'] as const,

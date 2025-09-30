@@ -3,9 +3,9 @@
 import { useState } from 'react';
 import { Container, Card, CardContent, Tabs, Tab, Button, Stack } from '@mui/material';
 import { useRouter } from 'next/navigation';
-import ProductsTab from '@/app/components/ProductsTab';
-import UnmatchedTab from '@/app/components/UnmatchedTab';
-import ProductsMatchingCard from '@/app/components/ProductsMatchingCard';
+import ProductsTab from './components/ProductsTab';
+import UnmatchedTab from './components/UnmatchedTab';
+import ProductsMatchingCard from './components/ProductsMatchingCard';
 
 export default function HomePage() {
   const [tab, setTab] = useState(0);
