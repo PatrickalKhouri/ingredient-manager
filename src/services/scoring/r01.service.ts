@@ -156,9 +156,9 @@ export async function computeAndSaveR01ForProduct(
       observed_inputs: r01.observed_inputs,
     };
 
-    await productsScores.updateOne(keyFilter, {
-      $push: { rules: { $each: [ruleEntry] } },
-    });
+    // await productsScores.updateOne(keyFilter, {
+    //   $push: { rules: { $each: [ruleEntry] } },
+    // });
   }
 
   // Recompute total_score = sum(rules[*].rule_score)
