@@ -4,7 +4,6 @@
   "main": "index.js",
   "scripts": {
     "dev": "tsx watch src/app.ts",
-    "build": "next build && tsc -p tsconfig.json",
     "start": "tsx src/app.ts",
     "lint": "eslint .",
     "script:classify": "node scripts/classify-cosing-ingredients.js",
