@@ -1,6 +1,6 @@
 // /queries/cosing.ts
 import { useQuery } from '@tanstack/react-query';
-import { searchCosing } from '@/api/config';
+import { searchCosing } from '../api/config';
 
 export function useSearchCosing(q: string) {
   return useQuery({

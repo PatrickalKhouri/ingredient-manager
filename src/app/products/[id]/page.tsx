@@ -29,18 +29,18 @@ import {
   TextField,
 } from '@mui/material';
 import { useState, useMemo, useEffect } from 'react';
-import { useProductDetailQuery, useMatchProduct } from '@/queries/products';
-import { Concerns, Suggestion } from '@/types/matches';
-import { NonIngredientRow } from '@/types/products';
+import { useProductDetailQuery, useMatchProduct } from '../../../queries/products';
+import { Concerns, Suggestion } from '../../../types/matches';
+import { NonIngredientRow } from '../../../types/products';
 import {
   useClearMatch,
   useManualMatch,
   useReject,
   useMarkNonIngredient,
   useUnclassifyNonIngredient,
-} from '@/queries/matches';
-import { useCreateAlias } from '@/queries/aliases';
-import { searchCosing } from '@/api/config';
+} from '../../../queries/matches';
+import { useCreateAlias } from '../../../queries/aliases';
+import { searchCosing } from '../../../api/config';
 
 function slugToTitle(slug: string | null) {
   if (!slug) return '';

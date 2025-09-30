@@ -6,7 +6,7 @@ import {
   Stack,
   Typography,
 } from '@mui/material';
-import { Suggestion } from '@/types/matches';
+import { Suggestion } from '../../types/matches';
 
 function SuggestionsCell({
   ingredient,

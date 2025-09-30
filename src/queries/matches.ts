@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { manualMatch, clearMatch, reject, getUnmatchedIngredients, markNonIngredient, unclassifyNonIngredient } from '@/api/config';
+import { manualMatch, clearMatch, reject, getUnmatchedIngredients, markNonIngredient, unclassifyNonIngredient } from '../api/config';
 import { useCallback } from 'react';
-import { Suggestion, UnmatchedIngredient, UnmatchedIngredientsParams } from '@/types/matches';
+import { Suggestion, UnmatchedIngredient, UnmatchedIngredientsParams } from '../types/matches';
 
 export type MatchMethod = 'exact' | 'alias' | 'fuzzy' | 'manual' | null;
 

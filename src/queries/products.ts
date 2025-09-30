@@ -1,12 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import type { ProductListParams } from '@/types/products';
+import type { ProductListParams } from '../types/products';
 import {
   getProducts,
   getProduct,
   matchProduct,
   getBrands,
   getProductsMatchingSummary,
-} from '@/api/config';
+} from '../api/config';
 
 const keys = {
   all: ['products'] as const,

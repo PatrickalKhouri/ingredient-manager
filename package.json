@@ -4,7 +4,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "tsx watch src/app.ts",
-    "build": "next build --dir client && tsc -p tsconfig.json",
+    "build": "next build && tsc -p tsconfig.json",
     "start": "node dist/app.js",
     "lint": "eslint .",
     "script:classify": "node scripts/classify-cosing-ingredients.js",
@@ -17,6 +17,12 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@mui/icons-material": "^7.3.1",
+    "@mui/material": "^7.3.1",
+    "@tanstack/react-query": "^5.90.1",
+    "@tanstack/react-query-devtools": "^5.90.1",
     "cors": "^2.8.5",
     "express": "^5.1.0",
     "helmet": "^8.1.0",

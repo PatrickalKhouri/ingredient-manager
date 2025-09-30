@@ -9,7 +9,7 @@ import { errorHandler } from './middlewares/errorHandler';
 import { env } from './config/env';
 
 const dev = process.env.NODE_ENV !== 'production';
-const nextApp = next({ dev, dir: './client' });
+const nextApp = next({ dev, dir: '.' });
 const handle = nextApp.getRequestHandler();
 
 async function createApp() {
@@ -17,8 +17,22 @@ async function createApp() {
   
   const app = express();
   
-  // Security middleware
-  app.use(helmet());
+  // Security middleware - configured for Next.js compatibility
+  app.use(helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", "data:", "https:"],
+        connectSrc: ["'self'"],
+        fontSrc: ["'self'"],
+        objectSrc: ["'none'"],
+        mediaSrc: ["'self'"],
+        frameSrc: ["'none'"],
+      },
+    },
+  }));
   
   // CORS configuration - no longer needed for same-origin requests
   app.use(cors({

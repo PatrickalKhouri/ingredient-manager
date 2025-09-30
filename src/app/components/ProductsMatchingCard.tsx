@@ -1,7 +1,7 @@
 'use client';
 
 import { Card, CardContent, Typography, LinearProgress, Box } from '@mui/material';
-import { useProductsMatchingSummary } from '@/queries/products';
+import { useProductsMatchingSummary } from '../../queries/products';
 
 type Props = {
   brand?: string;

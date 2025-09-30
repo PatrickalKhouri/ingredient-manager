@@ -25,8 +25,8 @@ import {
   Typography,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
-import { searchCosing } from '@/api/config';
-import { useAliasesQuery, useCreateAlias, useDeleteAlias } from '@/queries/aliases';
+import { searchCosing } from '../../api/config';
+import { useAliasesQuery, useCreateAlias, useDeleteAlias } from '../../queries/aliases';
 import React from 'react';
 
 type AliasRow = {
