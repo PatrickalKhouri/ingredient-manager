@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "tsx watch src/app.ts",
     "build": "next build && tsc -p tsconfig.json",
-    "start": "node dist/app.js",
+    "start": "tsx src/app.ts",
     "lint": "eslint .",
     "script:classify": "node scripts/classify-cosing-ingredients.js",
     "script:classify:dry": "node scripts/classify-cosing-ingredients.js --dry-run --limit=500",
