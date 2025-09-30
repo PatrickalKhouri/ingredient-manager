@@ -1,6 +1,7 @@
 'use client';
 import { CssBaseline, ThemeProvider, createTheme, Container, Box, Typography } from '@mui/material';
 import ReactQueryProvider from './react-query-provider';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 const theme = createTheme({ palette: { mode: 'light' } });
 
