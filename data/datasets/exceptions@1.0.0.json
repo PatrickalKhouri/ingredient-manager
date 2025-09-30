@@ -1,0 +1,19 @@
+{
+    "dataset": "exceptions",
+    "version": "1.0.0",
+    "ingredients": [
+      "retinol",
+      "bakuchiol",
+      "glycolic acid",
+      "lactic acid",
+      "mandelic acid",
+      "malic acid",
+      "tartaric acid",
+      "salicylic acid",
+      "betaine salicylate",
+      "tropic acid",
+      "peptide"
+    ],
+    "match_mode": "exact_name"
+  }
+  
