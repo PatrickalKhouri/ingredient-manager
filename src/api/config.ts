@@ -11,7 +11,7 @@ export const API = process.env.NEXT_PUBLIC_API_URL ?? '/api';
 
 async function asJson<T>(res: Response): Promise<T> {
   if (!res.ok) throw new Error(await res.text());
-  return res.json();
+  return res.json() as Promise<T>;
 }
 
 // Products
@@ -39,7 +39,7 @@ export const matchProduct = (id: string) => fetch(`${API}/products/${id}/match`,
 export async function getBrands(): Promise<string[]> {
   const res = await fetch(`${API}/products/brands`);
   if (!res.ok) throw new Error('Failed to fetch brands');
-  return res.json();
+  return res.json() as Promise<string[]>;
 }
 
 // Matches

@@ -4,7 +4,8 @@
   "main": "index.js",
   "scripts": {
     "dev": "tsx watch src/app.ts",
-    "start": "tsx src/app.ts",
+    "build": "next build && tsc --project tsconfig.server.json",
+    "start": "NODE_ENV=production node dist/app.js",
     "lint": "eslint .",
     "script:classify": "node scripts/classify-cosing-ingredients.js",
     "script:classify:dry": "node scripts/classify-cosing-ingredients.js --dry-run --limit=500",
