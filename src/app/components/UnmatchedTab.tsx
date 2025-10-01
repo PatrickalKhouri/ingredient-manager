@@ -78,7 +78,9 @@ export default function UnmatchedTab() {
   const [productId, setProductId] = useState<string | null>(null);
 
   const { mutate: doManualMatch } = useManualMatch(productId!, () => refetch());
-  const { mutateAsync: createAlias } = useCreateAlias();
+  const { mutateAsync: createAlias } = useCreateAlias(() => {
+    refetch();
+  });
 
   // search CosIng API for alias
   useEffect(() => {
@@ -98,11 +100,9 @@ export default function UnmatchedTab() {
     productId: string,
     label: string,
     cosingId: string,
-    score?: number,
-    suggestions?: Suggestion[]
   ) => {
     setProductId(productId);
-    doManualMatch({ label, cosingId, score: score ?? null, method: 'manual', suggestions: suggestions ?? [] });
+    createAlias({ alias: label, cosingId });
   };
 
   const openAliasFor = (label: string, productId: string) => {

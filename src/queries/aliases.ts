@@ -13,19 +13,25 @@ export function useAliasesQuery() {
   });
 }
 
-export function useCreateAlias() {
+export function useCreateAlias(onSuccess?: () => void) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ alias, cosingId }: { alias: string; cosingId: string }) =>
       createAlias(alias, cosingId),
-    onSuccess: () => qc.invalidateQueries({ queryKey: aliasKeys.all }),
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: aliasKeys.all });
+      onSuccess?.();
+    },
   });
 }
 
-export function useDeleteAlias() {
+export function useDeleteAlias(onSuccess?: () => void) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => deleteAlias(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: aliasKeys.all }),
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: aliasKeys.all });
+      onSuccess?.();
+    },
   });
 }

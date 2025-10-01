@@ -48,9 +48,13 @@ export default function AliasesPage() {
   const [chosen, setChosen] = useState<{ id: string; inciName: string } | null>(null);
 
   // ✅ React Query hooks
-  const { data: rows, isLoading } = useAliasesQuery();
-  const { mutateAsync: createAlias, isPending: creating } = useCreateAlias();
-  const { mutateAsync: deleteAlias, isPending: deleting } = useDeleteAlias();
+  const { data: rows, isLoading, refetch } = useAliasesQuery();
+  const { mutate: createAlias, isPending: creating } = useCreateAlias(() => {
+    refetch();
+  });
+  const { mutate: deleteAlias, isPending: deleting } = useDeleteAlias(() => {
+    refetch();
+  });
 
   // search CosIng for dialog
   React.useEffect(() => {

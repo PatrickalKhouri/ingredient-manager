@@ -68,8 +68,11 @@ export default function ProductDetailPage() {
 
   const { mutate: doManualMatch, isPending: isManualing } = useManualMatch(id);
   const { mutate: doReject, isPending: isRejecting } = useReject(id);
-  const { mutateAsync: createAlias, isPending: creating } = useCreateAlias();
+  const { mutateAsync: createAlias, isPending: creating } = useCreateAlias(() => {
+    refetch();
+  });
   const { mutate: doClearMatch, isPending: isClearing } = useClearMatch(id);
+  
 
   // NEW: non-ingredient classify / unclassify
   const { mutate: doMarkNonIng, isPending: markingNon } = useMarkNonIngredient(() => refetch());
@@ -188,8 +191,8 @@ export default function ProductDetailPage() {
     doClearMatch({ label });
     refetch();
   }
-  function onPickSuggestion(label: string, cosingId: string, score?: number, suggestions?: Suggestion[]) {
-    doManualMatch({ label, cosingId, score: score ?? null, method: 'manual', suggestions: suggestions ?? [] });
+  function onPickSuggestion(label: string, cosingId: string) {
+    createAlias({ alias: label, cosingId });
     refetch();
   }
   function openAliasFor(label: string) {
@@ -474,7 +477,7 @@ export default function ProductDetailPage() {
                                     size="small"
                                     variant="outlined"
                                     label={`${s.inciName} (${s.score.toFixed(2)})`}
-                                    onClick={() => onPickSuggestion(u.product_ingredient, s.cosingId, s.score, sugg)}
+                                    onClick={() => onPickSuggestion(u.product_ingredient, s.cosingId)}
                                     sx={{ cursor: 'pointer' }}
                                   />
                                 ))}

@@ -59,12 +59,11 @@ async function setMatch({
 async function autoMatchOne(label: string, productId: string) {
   const { matches, cosing, aliases } = await getCollections();
 
-  // don't override manual/rejected
   const existing = await matches.findOne(
     { productId, labelNormalized: label },
     { projection: { status: 1 } },
   );
-  if (existing && (existing.status === 'manual' || existing.status === 'rejected')) return;
+  if (existing && (existing.status === 'manual')) return;
 
   const candidates = generateCandidates(label);
 
@@ -165,11 +164,6 @@ export const matchesRepo = {
     const pis = inciArr.map((inci) => ({ normalizedText: normalizeIngredient(inci) }));
 
     for (const pi of pis) {
-      const existing = await matches.findOne(
-        { productId: String(_id), labelNormalized: pi.normalizedText },
-        { projection: { status: 1 } },
-      );
-      if (existing && (existing.status === 'manual' || existing.status === 'rejected')) continue;
       await autoMatchOne(pi.normalizedText, String(_id));
     }
 
@@ -320,14 +314,16 @@ export const matchesRepo = {
       productId: b.productId,
       labelNormalized: normalizeLabel(b.label),
     });
+
+    await autoMatchOne(b.label, b.productId);
     // re-create as unmatched (visible)
-    await setMatch({
-      productId: b.productId,
-      cosingId: null,
-      status: 'auto',
-      method: null,
-      label: b.label,
-    });
+    // await setMatch({
+    //   productId: b.productId,
+    //   cosingId: null,
+    //   status: 'auto',
+    //   method: null,
+    //   label: b.label,
+    // });
     return { ok: true };
   },
 
