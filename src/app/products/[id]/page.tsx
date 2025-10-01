@@ -224,7 +224,7 @@ export default function ProductDetailPage() {
     <Container maxWidth="md" sx={{ py: 3 }}>
       {/* Header */}
       <Stack direction="row" alignItems="center" spacing={2} mb={2} flexWrap="wrap">
-        <Button variant="text" onClick={() => router.back()}>
+        <Button variant="text" onClick={() => router.push('/')}>
           &larr; Back
         </Button>
         <Typography variant="h6" sx={{ ml: 'auto' }}>
