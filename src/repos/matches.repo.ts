@@ -328,10 +328,23 @@ export const matchesRepo = {
   async setClassification(matchId: string, classification: 'ingredient' | 'non_ingredient') {
     const { matches } = await getCollections();
     const _id = ObjectId.isValid(matchId) ? new ObjectId(matchId) : (matchId as any);
-    const res = await matches.updateOne(
+  
+    const match = await matches.findOne(
       { _id },
-      { $set: { classification, updatedAt: new Date() } },
+      { projection: { labelNormalized: 1 } }
     );
-    return { ok: res.modifiedCount > 0 };
-  },
+  
+    if (!match) {
+      const err: any = new Error('Match not found');
+      err.status = 404;
+      throw err;
+    }
+  
+    const res = await matches.updateMany(
+      { labelNormalized: match.labelNormalized },
+      { $set: { classification, updatedAt: new Date() } }
+    );
+  
+    return { ok: res.modifiedCount > 0, updated: res.modifiedCount };
+  }
 };
