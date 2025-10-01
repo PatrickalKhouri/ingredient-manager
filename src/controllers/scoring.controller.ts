@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { ObjectId } from 'mongodb';
-import { computeAndSaveR01ForProduct } from '../services/scoring/r01.service';
+import { scoringService } from '../services/scoring.service';
 
 export class ScoringController {
   static async evaluateRule1(req: Request, res: Response) {
@@ -10,7 +10,7 @@ export class ScoringController {
         return res.status(400).json({ error: 'invalid product_id' });
       }
 
-      const result = await computeAndSaveR01ForProduct(productId);
+      const result = await scoringService.evaluateRule1(productId);
 
       return res.json({
         rule_id: result.rule_id,
@@ -19,7 +19,7 @@ export class ScoringController {
         verdict: result.verdict,
         observed_inputs: result.observed_inputs,
         saved: true,
-        total_score: result._persistence.total_score
+        total_score: result._persistence.total_score,
       });
     } catch (err: any) {
       return res.status(err?.status || 500).json({ error: err?.message || 'internal_error' });

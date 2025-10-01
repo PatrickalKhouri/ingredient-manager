@@ -10,7 +10,10 @@
     "script:classify": "node scripts/classify-cosing-ingredients.js",
     "script:classify:dry": "node scripts/classify-cosing-ingredients.js --dry-run --limit=500",
     "script:rematch:all": "node scripts/rematch-all-products.js",
-    "script:reclassify:inci": "node scripts/reclassify-product-ingredients.js"
+    "script:reclassify:inci": "node scripts/reclassify-product-ingredients.js",
+    "script:link:scores": "node scripts/link-productsScores-to-products.js",
+    "script:link:scores:dry": "node scripts/link-productsScores-to-products.js --dry-run --limit=200",
+    "script:link:scores:with-ingredients": "node scripts/link-productsScores-to-products.js --with-ingredients"
   },
   "keywords": [],
   "author": "",
