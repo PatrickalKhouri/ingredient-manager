@@ -1,7 +1,7 @@
 // src/types/matches.ts
 
 export type MatchStatus = 'auto' | 'manual';
-export type MatchMethod = 'exact' | 'alias' | 'fuzzy' | 'token_set' | null;
+export type MatchMethod = 'exact' | 'alias' | 'fuzzy' | 'token_set' | 'manual' | null;
 
 export interface MatchRow {
   piId: string;                         // identifier for the product-ingredient “row”

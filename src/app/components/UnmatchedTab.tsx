@@ -77,30 +77,58 @@ export default function UnmatchedTab() {
   const [aliasChosen, setAliasChosen] = useState<{ id: string; inciName: string } | null>(null);
   const [productId, setProductId] = useState<string | null>(null);
 
-  const { mutate: doManualMatch } = useManualMatch(productId!, () => refetch());
+  const { mutate: doManualMatch } = useManualMatch(() => refetch());
   const { mutateAsync: createAlias } = useCreateAlias(() => {
     refetch();
   });
 
+  // manual match dialog state
+  const [openManual, setOpenManual] = useState(false);
+  const [manualLabel, setManualLabel] = useState<string | null>(null);
+  const [manualText, setManualText] = useState('');
+  const [manualQuery, setManualQuery] = useState('');
+  const [manualOptions, setManualOptions] = useState<Array<{ id: string; inciName: string }>>([]);
+  const [manualChosen, setManualChosen] = useState<{ id: string; inciName: string } | null>(null);
+  const [manualProductId, setManualProductId] = useState<string | null>(null);
+
   // search CosIng API for alias
   useEffect(() => {
     let active = true;
-    if (!openAlias || aliasQuery.trim().length < 2) { setAliasOptions([]); return; }
+    if (!openAlias || aliasQuery.trim().length < 2) {
+      setAliasOptions([]);
+      return;
+    }
     (async () => {
       try {
         const res = await searchCosing(aliasQuery);
         if (active) setAliasOptions(res as Array<{ id: string; inciName: string }>);
       } catch {}
     })();
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, [openAlias, aliasQuery]);
 
+  // search CosIng API for manual match
+  useEffect(() => {
+    let active = true;
+    if (!openManual || manualQuery.trim().length < 2) {
+      setManualOptions([]);
+      return;
+    }
+    (async () => {
+      try {
+        const res = await searchCosing(manualQuery);
+        if (active) setManualOptions(res as Array<{ id: string; inciName: string }>);
+      } catch {}
+    })();
+    return () => {
+      active = false;
+    };
+  }, [openManual, manualQuery]);
+
   // Actions
-  const onPickSuggestion = (
-    productId: string,
-    label: string,
-    cosingId: string,
-  ) => {
+  const onPickSuggestion = (productId: string, label: string, cosingId: string) => {
     setProductId(productId);
     createAlias({ alias: label, cosingId });
   };
@@ -127,12 +155,38 @@ export default function UnmatchedTab() {
     refetch();
   };
 
+  const openManualFor = (label: string, productId: string) => {
+    setManualLabel(label);
+    setManualText(label);
+    setManualChosen(null);
+    setManualQuery('');
+    setManualOptions([]);
+    setManualProductId(productId);
+    setOpenManual(true);
+  };
+
+  const onManualSubmit = async () => {
+    if (!manualText.trim() || !manualChosen || !manualProductId) return;
+    doManualMatch({
+      productId: manualProductId,
+      label: manualText.trim(),
+      cosingId: manualChosen.id,
+      method: 'manual',
+    });
+    setOpenManual(false);
+    setManualText('');
+    setManualChosen(null);
+    setManualQuery('');
+    setManualOptions([]);
+    setManualProductId(null);
+    refetch();
+  };
+
   const items = data?.items ?? [];
   const total = data?.total ?? 0;
 
   return (
     <>
-      {/* Keep inputs mounted; show fetching bar on top */}
       {(isFetching || (isLoading && !data)) && <LinearProgress sx={{ mb: 2 }} />}
 
       {isError && (
@@ -220,9 +274,14 @@ export default function UnmatchedTab() {
                   </TableCell>
                   <TableCell>{row.product.brand}</TableCell>
                   <TableCell align="right" onClick={(e) => e.stopPropagation()}>
-                    <Button size="small" variant="outlined" onClick={() => openAliasFor(row.ingredient, row.product._id)}>
-                      Alias
-                    </Button>
+                    <Stack direction="row" spacing={1}>
+                      <Button size="small" variant="outlined" onClick={() => openAliasFor(row.ingredient, row.product._id)}>
+                        Alias
+                      </Button>
+                      <Button size="small" variant="outlined" color="secondary" onClick={() => openManualFor(row.ingredient, row.product._id)}>
+                        Manual
+                      </Button>
+                    </Stack>
                   </TableCell>
                 </TableRow>
               ))}
@@ -279,6 +338,45 @@ export default function UnmatchedTab() {
           <Button onClick={() => setOpenAlias(false)}>Cancel</Button>
           <Button onClick={onAliasSubmit} variant="contained" disabled={!aliasText?.trim() || !aliasChosen}>
             Save & Rematch
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Manual match dialog */}
+      <Dialog open={openManual} onClose={() => setOpenManual(false)} fullWidth maxWidth="sm">
+        <DialogTitle>Manual Match (exception)</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" gutterBottom>
+            Ingredient label: <strong>{manualLabel}</strong>
+          </Typography>
+          <TextField
+            fullWidth
+            sx={{ mt: 2 }}
+            label="Ingredient text"
+            value={manualText}
+            onChange={(e) => setManualText(e.target.value)}
+            helperText="Confirm or adjust the ingredient label."
+          />
+          <Autocomplete
+            sx={{ mt: 2 }}
+            options={manualOptions}
+            getOptionLabel={(o) => o.inciName}
+            onChange={(_, v) => setManualChosen(v ? { id: v.id, inciName: v.inciName } : null)}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Map ingredient to CosIng"
+                value={manualQuery}
+                onChange={(e) => setManualQuery(e.target.value)}
+                helperText="Type at least 2 characters to search"
+              />
+            )}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenManual(false)}>Cancel</Button>
+          <Button onClick={onManualSubmit} variant="contained" disabled={!manualText?.trim() || !manualChosen}>
+            Save Manual Match
           </Button>
         </DialogActions>
       </Dialog>

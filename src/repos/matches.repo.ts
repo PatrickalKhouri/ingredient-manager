@@ -59,6 +59,9 @@ async function setMatch({
 
 
 export async function buildSuggestions(label: string, allCosings: Array<{ id: string; name: string }>) {
+
+  console.log('label', label);
+  console.log('allCosings', allCosings.length);
   
   const sims = allCosings.map((c) => ({
     cosingId: c.id,
@@ -68,18 +71,14 @@ export async function buildSuggestions(label: string, allCosings: Array<{ id: st
 
   sims.sort((a, b) => b.score - a.score);
 
+  console.log('sims after sort', sims);
+  
   // return top 5 suggestions with score >= 0.3
   return sims.filter((s) => s.score >= 0.3).slice(0, 5);
 }
 
 async function autoMatchOne(label: string, productId: string) {
   const { matches, cosing, aliases } = await getCollections();
-
-  const existing = await matches.findOne(
-    { productId, labelNormalized: label },
-    { projection: { status: 1 } },
-  );
-  if (existing && (existing.status === 'manual')) return;
 
   const candidates = generateCandidates(label);
 
@@ -125,6 +124,7 @@ async function autoMatchOne(label: string, productId: string) {
 
   for (const cand of candidates) {
     const sims = await buildSuggestions(cand, cosingCache);
+    console.log('sims', sims);
     sims.sort((a, b) => b.score - a.score);
     const best = sims[0];
 
@@ -294,6 +294,7 @@ export const matchesRepo = {
     score?: number|null;
     suggestions?: Suggestion[];
   }) {
+    console.log('productId', b.productId);
     await setMatch({
       productId: b.productId,
       cosingId: b.cosingId,
@@ -313,7 +314,7 @@ export const matchesRepo = {
       labelNormalized: normalizeLabel(b.label),
     });
 
-    await autoMatchOne(b.label, b.productId);
+    await autoMatchOne(normalizeLabel(b.label), b.productId);
     // re-create as unmatched (visible)
     // await setMatch({
     //   productId: b.productId,
