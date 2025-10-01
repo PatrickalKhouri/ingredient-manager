@@ -33,6 +33,7 @@ export async function getProduct(productId: string) {
   return asJson<ProductDetail>(res);
 }
 
+
 export const matchProduct = (id: string) => fetch(`${API}/products/${id}/match`, { method:'POST' }).then(asJson);
 
 
@@ -41,6 +42,13 @@ export async function getBrands(): Promise<string[]> {
   if (!res.ok) throw new Error('Failed to fetch brands');
   return res.json() as Promise<string[]>;
 }
+
+export const updateIngredients = (productId: string, ingredientsText: string) =>
+  fetch(`${API}/products/${productId}/ingredients`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ingredientsText }),
+  }).then(asJson);
 
 // Matches
 export const manualMatch = (payload: {
