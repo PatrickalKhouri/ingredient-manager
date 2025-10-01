@@ -2,6 +2,7 @@ import { ObjectId } from 'mongodb';
 import { getCollections } from '../config/get-collections';
 import { COLL } from '../config/collections';
 import { normalizeLabel } from '../common/text.util';
+import { buildSuggestions, ensureCosingCache } from './matches.repo';
 
 export const aliasesRepo = {
   // GET /aliases
@@ -144,19 +145,54 @@ export const aliasesRepo = {
 
   // DELETE /aliases/:id
   async remove(id: string) {
-    const { aliases } = await getCollections();
-
+    const { aliases, matches } = await getCollections();
+  
     if (!ObjectId.isValid(id)) {
       const err: any = new Error('Invalid alias id'); err.status = 400; throw err;
     }
     const _id = new ObjectId(id);
-
-    const existing = await aliases.findOne({ _id }, { projection: { _id: 1 } });
+  
+    const existing = await aliases.findOne({ _id });
     if (!existing) {
       const err: any = new Error('Alias not found'); err.status = 404; throw err;
     }
-
+  
+    const aliasNorm = existing.aliasNormalized;
+  
+    // delete alias
     await aliases.deleteOne({ _id });
-    return { deleted: true };
-  },
+  
+    // find matches that were matched via this alias
+    const aliasMatches = await matches.find({
+      labelNormalized: aliasNorm,
+      method: 'alias',
+      status: { $nin: ['manual'] },
+    }).toArray();
+  
+    let updatedCount = 0;
+
+    const cosingCache = await ensureCosingCache();
+  
+    for (const m of aliasMatches) {
+      // re-run your suggestion logic here:
+      const newSuggestions = await buildSuggestions(m.label, cosingCache);
+  
+      await matches.updateOne(
+        { _id: m._id },
+        {
+          $set: {
+            cosingId: null,
+            status: 'auto',
+            method: null,
+            score: null,
+            suggestions: newSuggestions,
+            updatedAt: new Date(),
+          },
+        },
+      );
+      updatedCount++;
+    }
+  
+    return { deleted: true, unmatched: updatedCount };
+  }
 };

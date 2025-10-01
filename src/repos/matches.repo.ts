@@ -8,11 +8,12 @@ type Suggestion = { cosingId: string; inciName: string; score: number };
 
 let cosingCache: Array<{ id: string; name: string }> | null = null;
 
-async function ensureCosingCache() {
-  if (cosingCache) return;
+export async function ensureCosingCache() {
+  if (cosingCache) return cosingCache;
   const { cosing } = await getCollections();
-  const rows = await cosing.find({}, { projection: { _id: 1, inci_name: 1 } }).toArray();
-  cosingCache = rows.map((r) => ({ id: String(r._id), name: r.inci_name }));
+  const docs = await cosing.find({}, { projection: { _id: 1, inci_name: 1 } }).toArray();
+  cosingCache = docs.map((d) => ({ id: String(d._id), name: d.inci_name }));
+  return cosingCache;
 }
 
 async function setMatch({
@@ -54,6 +55,21 @@ async function setMatch({
   };
   const created = await matches.insertOne(doc);
   return created.insertedId;
+}
+
+
+export async function buildSuggestions(label: string, allCosings: Array<{ id: string; name: string }>) {
+  
+  const sims = allCosings.map((c) => ({
+    cosingId: c.id,
+    inciName: c.name,
+    score: stringSimilarity.compareTwoStrings(label, c.name),
+  }));
+
+  sims.sort((a, b) => b.score - a.score);
+
+  // return top 5 suggestions with score >= 0.3
+  return sims.filter((s) => s.score >= 0.3).slice(0, 5);
 }
 
 async function autoMatchOne(label: string, productId: string) {
@@ -105,15 +121,10 @@ async function autoMatchOne(label: string, productId: string) {
   }
 
   // C) fuzzy suggestions (cache)
-  await ensureCosingCache();
-  const allCosings = cosingCache!;
+  const cosingCache = await ensureCosingCache();
 
   for (const cand of candidates) {
-    const sims = allCosings.map((c) => ({
-      cosingId: c.id,
-      inciName: c.name,
-      score: stringSimilarity.compareTwoStrings(cand, c.name),
-    }));
+    const sims = await buildSuggestions(cand, cosingCache);
     sims.sort((a, b) => b.score - a.score);
     const best = sims[0];
 

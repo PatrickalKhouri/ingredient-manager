@@ -32,15 +32,6 @@ export function useManualMatch(productId: string, onSuccess?: () => void) {
   });
 }
 
-export function useReject(productId: string) {
-  const invalidate = useInvalidateProductDetail();
-  return useMutation({
-    mutationFn: (payload: { label: string; suggestions?: Suggestion[] }) =>
-      reject({ productId, ...payload }),
-    onSuccess: () => invalidate(productId),
-  });
-}
-
 export function useClearMatch(productId: string) {
   const invalidate = useInvalidateProductDetail();
   return useMutation({
