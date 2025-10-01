@@ -8,11 +8,12 @@ type Suggestion = { cosingId: string; inciName: string; score: number };
 
 let cosingCache: Array<{ id: string; name: string }> | null = null;
 
-async function ensureCosingCache() {
-  if (cosingCache) return;
+export async function ensureCosingCache() {
+  if (cosingCache) return cosingCache;
   const { cosing } = await getCollections();
-  const rows = await cosing.find({}, { projection: { _id: 1, inci_name: 1 } }).toArray();
-  cosingCache = rows.map((r) => ({ id: String(r._id), name: r.inci_name }));
+  const docs = await cosing.find({}, { projection: { _id: 1, inci_name: 1 } }).toArray();
+  cosingCache = docs.map((d) => ({ id: String(d._id), name: d.inci_name }));
+  return cosingCache;
 }
 
 async function setMatch({
@@ -26,7 +27,7 @@ async function setMatch({
 }: {
   productId: string;
   cosingId: string | null;
-  status: 'auto' | 'manual' | 'rejected';
+  status: 'auto' | 'manual' ;
   method: 'exact' | 'alias' | 'fuzzy' | 'manual' | null;
   label: string;
   score?: number | null;
@@ -56,15 +57,29 @@ async function setMatch({
   return created.insertedId;
 }
 
+
+export async function buildSuggestions(label: string, allCosings: Array<{ id: string; name: string }>) {
+  
+  const sims = allCosings.map((c) => ({
+    cosingId: c.id,
+    inciName: c.name,
+    score: stringSimilarity.compareTwoStrings(label, c.name),
+  }));
+
+  sims.sort((a, b) => b.score - a.score);
+
+  // return top 5 suggestions with score >= 0.3
+  return sims.filter((s) => s.score >= 0.3).slice(0, 5);
+}
+
 async function autoMatchOne(label: string, productId: string) {
   const { matches, cosing, aliases } = await getCollections();
 
-  // don't override manual/rejected
   const existing = await matches.findOne(
     { productId, labelNormalized: label },
     { projection: { status: 1 } },
   );
-  if (existing && (existing.status === 'manual' || existing.status === 'rejected')) return;
+  if (existing && (existing.status === 'manual')) return;
 
   const candidates = generateCandidates(label);
 
@@ -106,15 +121,10 @@ async function autoMatchOne(label: string, productId: string) {
   }
 
   // C) fuzzy suggestions (cache)
-  await ensureCosingCache();
-  const allCosings = cosingCache!;
+  const cosingCache = await ensureCosingCache();
 
   for (const cand of candidates) {
-    const sims = allCosings.map((c) => ({
-      cosingId: c.id,
-      inciName: c.name,
-      score: stringSimilarity.compareTwoStrings(cand, c.name),
-    }));
+    const sims = await buildSuggestions(cand, cosingCache);
     sims.sort((a, b) => b.score - a.score);
     const best = sims[0];
 
@@ -165,11 +175,6 @@ export const matchesRepo = {
     const pis = inciArr.map((inci) => ({ normalizedText: normalizeIngredient(inci) }));
 
     for (const pi of pis) {
-      const existing = await matches.findOne(
-        { productId: String(_id), labelNormalized: pi.normalizedText },
-        { projection: { status: 1 } },
-      );
-      if (existing && (existing.status === 'manual' || existing.status === 'rejected')) continue;
       await autoMatchOne(pi.normalizedText, String(_id));
     }
 
@@ -284,7 +289,7 @@ export const matchesRepo = {
     productId: string;
     label: string;
     cosingId: string;
-    status?: 'auto'|'manual'|'rejected';
+    status?: 'auto'|'manual';
     method?: 'exact'|'alias'|'fuzzy'|'manual'|null;
     score?: number|null;
     suggestions?: Suggestion[];
@@ -301,43 +306,45 @@ export const matchesRepo = {
     return { ok: true };
   },
 
-  async reject(b: { productId: string; label: string; suggestions?: Suggestion[] }) {
-    await setMatch({
-      productId: b.productId,
-      cosingId: null,
-      status: 'rejected',
-      method: null,
-      label: b.label,
-      score: null,
-      suggestions: b.suggestions ?? [],
-    });
-    return { ok: true };
-  },
-
   async clear(b: { productId: string; label: string }) {
     const { matches } = await getCollections();
     await matches.deleteOne({
       productId: b.productId,
       labelNormalized: normalizeLabel(b.label),
     });
+
+    await autoMatchOne(b.label, b.productId);
     // re-create as unmatched (visible)
-    await setMatch({
-      productId: b.productId,
-      cosingId: null,
-      status: 'auto',
-      method: null,
-      label: b.label,
-    });
+    // await setMatch({
+    //   productId: b.productId,
+    //   cosingId: null,
+    //   status: 'auto',
+    //   method: null,
+    //   label: b.label,
+    // });
     return { ok: true };
   },
 
   async setClassification(matchId: string, classification: 'ingredient' | 'non_ingredient') {
     const { matches } = await getCollections();
     const _id = ObjectId.isValid(matchId) ? new ObjectId(matchId) : (matchId as any);
-    const res = await matches.updateOne(
+  
+    const match = await matches.findOne(
       { _id },
-      { $set: { classification, updatedAt: new Date() } },
+      { projection: { labelNormalized: 1 } }
     );
-    return { ok: res.modifiedCount > 0 };
-  },
+  
+    if (!match) {
+      const err: any = new Error('Match not found');
+      err.status = 404;
+      throw err;
+    }
+  
+    const res = await matches.updateMany(
+      { labelNormalized: match.labelNormalized },
+      { $set: { classification, updatedAt: new Date() } }
+    );
+  
+    return { ok: res.modifiedCount > 0, updated: res.modifiedCount };
+  }
 };

@@ -61,11 +61,54 @@ async function createApp() {
   return app;
 }
 
-// Start the server
+// Start the server with improved error handling
 createApp().then((app) => {
-  app.listen(env.PORT, () => {
+  const server = app.listen(env.PORT, () => {
     console.log({ port: env.PORT }, `Server listening on :${env.PORT}`);
   });
+
+  // Handle server errors gracefully
+  server.on('error', (err: any) => {
+    if (err.code === 'EADDRINUSE') {
+      console.error(`Port ${env.PORT} is already in use. Please try a different port.`);
+    } else {
+      console.error('Server error:', err);
+    }
+    process.exit(1);
+  });
+
+  // Handle process termination gracefully
+  process.on('SIGTERM', () => {
+    console.log('SIGTERM received, shutting down gracefully');
+    server.close(() => {
+      console.log('Process terminated');
+      process.exit(0);
+    });
+  });
+
+  process.on('SIGINT', () => {
+    console.log('SIGINT received, shutting down gracefully');
+    server.close(() => {
+      console.log('Process terminated');
+      process.exit(0);
+    });
+  });
+
+  // Handle uncaught exceptions
+  process.on('uncaughtException', (err) => {
+    console.error('Uncaught Exception:', err);
+    server.close(() => {
+      process.exit(1);
+    });
+  });
+
+  process.on('unhandledRejection', (reason, promise) => {
+    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+    server.close(() => {
+      process.exit(1);
+    });
+  });
+
 }).catch((err) => {
   console.error('Failed to start server:', err);
   process.exit(1);

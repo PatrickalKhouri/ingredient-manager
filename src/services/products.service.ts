@@ -32,4 +32,11 @@ export const productsService = {
   async matchProduct(productId: string) {
     return matchesRepo.matchProduct(productId);
   },
+
+  async updateIngredients(
+    productId: string,
+    body: { ingredientsText?: string; ingredients?: string[] },
+  ) {
+    return productsRepo.updateInciFromInput(productId, body);
+  },
 };

@@ -13,7 +13,7 @@ const suggestionInput = z.object({
 export const setMatchBody = z.object({
   productId: z.string().min(1),
   cosingId: z.string().nullable().optional(),
-  status: z.enum(['auto','manual','rejected']).default('manual'),
+  status: z.enum(['auto','manual']).default('manual'),
   method: z.enum(['exact','alias','fuzzy','manual']).nullable().optional(),
   label: z.string().optional(),
   inciName: z.string().optional(),

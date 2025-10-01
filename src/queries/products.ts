@@ -6,6 +6,7 @@ import {
   matchProduct,
   getBrands,
   getProductsMatchingSummary,
+  updateIngredients,
 } from '../api/config';
 
 const keys = {
@@ -54,5 +55,16 @@ export function useProductsMatchingSummary(params?: { brand?: string }) {
     queryKey: keys.matchingSummary(params),
     queryFn: () => getProductsMatchingSummary(params),
     staleTime: 60_000,
+  });
+}
+
+export function useUpdateIngredients(productId: string, onSuccess?: () => void) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (ingredientsText: string) => updateIngredients(productId, ingredientsText),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: keys.detail(productId) });
+      onSuccess?.();
+    },
   });
 }

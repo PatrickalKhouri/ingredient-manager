@@ -11,11 +11,6 @@ export async function manualMatch(req: Request, res: Response) {
   res.json(await matchesService.manualMatch(b));
 }
 
-export async function rejectMatch(req: Request, res: Response) {
-  const b = (req as any).validated?.body ?? req.body;
-  res.json(await matchesService.reject(b));
-}
-
 export async function clearMatch(req: Request, res: Response) {
   const b = (req as any).validated?.body ?? req.body;
   res.json(await matchesService.clear(b));

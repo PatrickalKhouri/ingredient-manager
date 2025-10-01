@@ -25,3 +25,22 @@ export async function match(req: Request, res: Response) {
   const p = (req as any).validated?.params ?? req.params;
   res.json(await productsService.matchProduct((p as any).productId));
 }
+
+export async function updateIngredientsAndRematch(req: Request, res: Response) {
+  const params = (req as any).validated?.params ?? req.params;
+  const body = (req as any).validated?.body ?? req.body;
+
+  const productId = (params as any).productId as string;
+
+  const { savedList } = await productsService.updateIngredients(productId, body);
+
+  const matchResult = await productsService.matchProduct(productId);
+
+  res.json({
+    ok: true,
+    productId,
+    savedCount: savedList.length,
+    savedList,
+    matchResult,
+  });
+}

@@ -27,15 +27,17 @@ import {
   DialogActions,
   Autocomplete,
   TextField,
+  IconButton,
+  Tooltip,
 } from '@mui/material';
+import EditIcon from '@mui/icons-material/Edit';
 import { useState, useMemo, useEffect } from 'react';
-import { useProductDetailQuery, useMatchProduct } from '../../../queries/products';
+import { useProductDetailQuery, useMatchProduct, useUpdateIngredients } from '../../../queries/products';
 import { Concerns, Suggestion } from '../../../types/matches';
 import { NonIngredientRow } from '../../../types/products';
 import {
   useClearMatch,
   useManualMatch,
-  useReject,
   useMarkNonIngredient,
   useUnclassifyNonIngredient,
 } from '../../../queries/matches';
@@ -59,17 +61,59 @@ export default function ProductDetailPage() {
 
   const { data, isLoading, isError, refetch } = useProductDetailQuery(id, !!id);
   const { mutate: matchProduct, isPending: isMatching } = useMatchProduct(id, refetch);
-
-  const ingredientsLine = (data?.ingredientsRaw ?? []).join(', ');
+  const { mutate: saveIngredients, isPending: isUpdating } = useUpdateIngredients(id, () => {
+    setIsEditing(false);
+  });
 
   const { mutate: doManualMatch, isPending: isManualing } = useManualMatch(id);
-  const { mutate: doReject, isPending: isRejecting } = useReject(id);
-  const { mutateAsync: createAlias, isPending: creating } = useCreateAlias();
+  const { mutateAsync: createAlias, isPending: creating } = useCreateAlias(() => {
+    refetch();
+  });
   const { mutate: doClearMatch, isPending: isClearing } = useClearMatch(id);
+  
 
   // NEW: non-ingredient classify / unclassify
   const { mutate: doMarkNonIng, isPending: markingNon } = useMarkNonIngredient(() => refetch());
   const { mutate: doUnclassify, isPending: unclassifying } = useUnclassifyNonIngredient(() => refetch());
+
+
+  const computedIngredientsLine = useMemo(() => {
+    if (Array.isArray(data?.ingredientsRaw) && data.ingredientsRaw.length) {
+      return data.ingredientsRaw.join(', ');
+    }
+    return '';
+  }, [data?.ingredientsRaw]);
+
+  // 2) Local UI state for editing
+  const [isEditing, setIsEditing] = useState(false);
+  const [displayLine, setDisplayLine] = useState(computedIngredientsLine);
+  const [editedText, setEditedText] = useState(computedIngredientsLine);
+
+  // Keep UI in sync when navigating or refetching
+  useEffect(() => {
+    setDisplayLine(computedIngredientsLine);
+    if (!isEditing) setEditedText(computedIngredientsLine);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [computedIngredientsLine]);
+
+  const onEdit = () => {
+    setEditedText(displayLine);
+    setIsEditing(true);
+  };
+  const onCancel = () => {
+    setEditedText(displayLine);
+    setIsEditing(false);
+  };
+
+  const onSave = () => {
+    const next = (editedText ?? '').trim();
+    if (!next.length || next === displayLine.trim()) {
+      setIsEditing(false);
+      return;
+    }
+    saveIngredients(next);
+    setDisplayLine(next);
+  };
 
   const [openAlias, setOpenAlias] = useState(false);
   const [aliasPi, setAliasPi] = useState<{ label: string } | null>(null);
@@ -123,8 +167,7 @@ export default function ProductDetailPage() {
     return list;
   }, [data, filter, sortBy]);
 
-  const showUnmatched = filter === 'all' || filter === 'unmatched' || filter === 'fuzzy' ;
-
+  const showUnmatched = filter === 'all' || filter === 'unmatched' || filter === 'fuzzy';
   const showNonIngredients = filter === 'all' || filter === 'non_ingredient';
 
   if (!id) return <Typography sx={{ m: 2 }}>Invalid product id</Typography>;
@@ -138,16 +181,12 @@ export default function ProductDetailPage() {
     );
   }
 
-  async function onReject(label: string, suggestions?: Suggestion[]) {
-    doReject({ label, suggestions: suggestions ?? [] });
-    refetch();
-  }
   async function onClear(label: string) {
     doClearMatch({ label });
     refetch();
   }
-  function onPickSuggestion(label: string, cosingId: string, score?: number, suggestions?: Suggestion[]) {
-    doManualMatch({ label, cosingId, score: score ?? null, method: 'manual', suggestions: suggestions ?? [] });
+  function onPickSuggestion(label: string, cosingId: string) {
+    createAlias({ alias: label, cosingId });
     refetch();
   }
   function openAliasFor(label: string) {
@@ -177,7 +216,7 @@ export default function ProductDetailPage() {
     },
   };
 
-  if (isManualing || isRejecting || isClearing || markingNon || unclassifying) {
+  if (isManualing || isClearing || markingNon || unclassifying) {
     return <LinearProgress sx={{ m: 2 }} />;
   }
 
@@ -185,7 +224,7 @@ export default function ProductDetailPage() {
     <Container maxWidth="md" sx={{ py: 3 }}>
       {/* Header */}
       <Stack direction="row" alignItems="center" spacing={2} mb={2} flexWrap="wrap">
-        <Button variant="text" onClick={() => router.back()}>
+        <Button variant="text" onClick={() => router.push('/')}>
           &larr; Back
         </Button>
         <Typography variant="h6" sx={{ ml: 'auto' }}>
@@ -201,21 +240,54 @@ export default function ProductDetailPage() {
         </Button>
       </Stack>
 
-      {/* Original Ingredients */}
+      {/* Editable "Original Ingredients" */}
       <Card>
         <CardContent sx={{ p: { xs: 2, md: 3 } }}>
-          <Typography variant="h6" gutterBottom>
-            Original Ingredients
-          </Typography>
+          <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
+            <Typography variant="h6">Original Ingredients</Typography>
+            {!isEditing && !!displayLine && (
+              <Tooltip title="Edit ingredients">
+                <span>
+                  <IconButton size="small" onClick={onEdit}>
+                    <EditIcon fontSize="small" />
+                  </IconButton>
+                </span>
+              </Tooltip>
+            )}
+          </Stack>
 
-          {!data.ingredientsRaw?.length ? (
+          {!displayLine && !isEditing ? (
             <Typography color="text.secondary">No ingredients found.</Typography>
+          ) : isEditing ? (
+            <Stack spacing={1.5}>
+              <TextField
+                value={editedText}
+                onChange={(e) => setEditedText(e.target.value)}
+                multiline
+                minRows={5}
+                fullWidth
+                placeholder="Type ingredients separated by commas (e.g., Water, Glycerin, Aloe)…"
+              />
+
+              <Stack direction="row" spacing={1}>
+                <Button
+                  variant="contained"
+                  onClick={onSave}
+                  disabled={editedText.trim() === displayLine.trim()}
+                >
+                  Save
+                </Button>
+                <Button variant="text" onClick={onCancel}>
+                  Cancel
+                </Button>
+              </Stack>
+            </Stack>
           ) : (
             <Typography
               variant="body1"
               sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', lineHeight: 1.6 }}
             >
-              {ingredientsLine}
+              {displayLine}
             </Typography>
           )}
         </CardContent>
@@ -243,7 +315,7 @@ export default function ProductDetailPage() {
           <ToggleButton value="manual">MANUAL</ToggleButton>
           <ToggleButton value="auto">AUTO</ToggleButton>
           <ToggleButton value="unmatched">UNMATCHED</ToggleButton>
-          <ToggleButton value="non_ingredient">NON-INGREDIENT</ToggleButton> {/* ✅ new */}
+          <ToggleButton value="non_ingredient">NON-INGREDIENT</ToggleButton>
         </ToggleButtonGroup>
 
         <Box flexGrow={1} />
@@ -346,9 +418,6 @@ export default function ProductDetailPage() {
                         </Box>
 
                         <Stack direction="row" spacing={1} justifyContent="flex-end" flexWrap="wrap" sx={actionRowSx}>
-                          <Button size="small" variant="outlined" color="warning" onClick={() => onReject(m.product_ingredient, m.suggestions ?? [])}>
-                            Reject
-                          </Button>
                           <Button size="small" variant="outlined" color="inherit" onClick={() => onClear(m.product_ingredient)}>
                             Clear+Auto
                           </Button>
@@ -399,7 +468,7 @@ export default function ProductDetailPage() {
                                     size="small"
                                     variant="outlined"
                                     label={`${s.inciName} (${s.score.toFixed(2)})`}
-                                    onClick={() => onPickSuggestion(u.product_ingredient, s.cosingId, s.score, sugg)}
+                                    onClick={() => onPickSuggestion(u.product_ingredient, s.cosingId)}
                                     sx={{ cursor: 'pointer' }}
                                   />
                                 ))}
