@@ -16,3 +16,10 @@ export const productIdParams = z.object({
 export const matchingSummaryQuery = z.object({
   brand: z.string().trim().optional(),
 });
+export const updateIngredientsBody = z.object({
+  ingredientsText: z.string().optional(),
+  ingredients: z.array(z.string().min(1)).optional(),
+}).refine(
+  (v) => (v.ingredientsText && v.ingredientsText.trim().length > 0) || (v.ingredients && v.ingredients.length > 0),
+  { message: 'Provide ingredientsText or ingredients[]' },
+);

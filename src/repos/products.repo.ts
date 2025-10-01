@@ -2,7 +2,7 @@
 import { ObjectId } from 'mongodb';
 import { getCollections } from '../config/get-collections';
 import { COLL } from '../config/collections';
-import { normalizeLabel } from '../common/text.util';
+import { normalizeLabel, splitIngredients } from '../common/text.util';
 
 type ListQuery = {
   search?: string;
@@ -372,5 +372,61 @@ export const productsRepo = {
       matchedPct,
       found_percents: (product as any).found_percents ?? matchedPct,
     };
+  },
+
+  async updateInciFromInput(
+    productId: string,
+    body: { ingredientsText?: string; ingredients?: string[] },
+  ): Promise<{ savedList: string[] }> {
+    const { products } = await getCollections();
+
+    if (!ObjectId.isValid(productId)) {
+      const err = new Error('Invalid product id') as any;
+      err.status = 400;
+      throw err;
+    }
+    const _id = new ObjectId(productId);
+
+    // Load current to know whether original_inci_list is set
+    const existing = await products.findOne(
+      { _id },
+      { projection: { _id: 1, inci: 1, original_inci_list: 1 } },
+    );
+    if (!existing) {
+      const err = new Error('Product not found') as any;
+      err.status = 404;
+      throw err;
+    }
+
+    // Build the clean list
+    let incoming: string[] = [];
+    if (Array.isArray(body.ingredients) && body.ingredients.length) {
+      incoming = body.ingredients.map(s => String(s).trim()).filter(Boolean);
+    } else if (typeof body.ingredientsText === 'string' && body.ingredientsText.trim()) {
+      incoming = splitIngredients(body.ingredientsText);
+    }
+
+    // Normalize whitespace and remove empties/dupes (preserve order)
+    const seen = new Set<string>();
+    const cleaned: string[] = [];
+    for (const raw of incoming) {
+      const v = raw.replace(/\s+/g, ' ').trim();
+      if (!v) continue;
+      if (seen.has(v.toLowerCase())) continue;
+      seen.add(v.toLowerCase());
+      cleaned.push(v);
+    }
+
+    const updatePayload: any = {
+      $set: { inci: cleaned },
+    };
+
+    if (!existing.original_inci_list && Array.isArray(existing.inci)) {
+      updatePayload.$set.original_inci_list = existing.inci;
+    }
+
+    await products.updateOne({ _id }, updatePayload);
+
+    return { savedList: cleaned };
   },
 };
