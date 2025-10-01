@@ -26,7 +26,7 @@ async function setMatch({
 }: {
   productId: string;
   cosingId: string | null;
-  status: 'auto' | 'manual' | 'rejected';
+  status: 'auto' | 'manual' ;
   method: 'exact' | 'alias' | 'fuzzy' | 'manual' | null;
   label: string;
   score?: number | null;
@@ -278,7 +278,7 @@ export const matchesRepo = {
     productId: string;
     label: string;
     cosingId: string;
-    status?: 'auto'|'manual'|'rejected';
+    status?: 'auto'|'manual';
     method?: 'exact'|'alias'|'fuzzy'|'manual'|null;
     score?: number|null;
     suggestions?: Suggestion[];
@@ -290,19 +290,6 @@ export const matchesRepo = {
       method: b.method ?? 'manual',
       label: b.label,
       score: b.score ?? null,
-      suggestions: b.suggestions ?? [],
-    });
-    return { ok: true };
-  },
-
-  async reject(b: { productId: string; label: string; suggestions?: Suggestion[] }) {
-    await setMatch({
-      productId: b.productId,
-      cosingId: null,
-      status: 'rejected',
-      method: null,
-      label: b.label,
-      score: null,
       suggestions: b.suggestions ?? [],
     });
     return { ok: true };

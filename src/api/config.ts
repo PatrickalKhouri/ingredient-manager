@@ -65,19 +65,6 @@ fetch(`${API}/matches/manual`, {
   body: JSON.stringify(payload),
 }).then(asJson);
 
-
-export const reject = (payload: {
-productId: string;
-label: string;
-suggestions?: Suggestion[];
-}) =>
-fetch(`${API}/matches/reject`, {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify(payload),
-}).then(asJson);
-
-
 export const clearMatch = (payload: {
   productId: string;
   label: string;

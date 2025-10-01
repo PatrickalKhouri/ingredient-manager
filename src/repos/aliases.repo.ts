@@ -116,12 +116,10 @@ export const aliasesRepo = {
       throw e;
     }
 
-    // Apply alias to existing matches (same as Nest):
-    // update matches with labelNormalized == aliasNorm and not manual/rejected
     const res = await matches.updateMany(
       {
         labelNormalized: aliasNorm,
-        status: { $nin: ['manual', 'rejected'] },
+        status: { $nin: ['manual',] },
       },
       {
         $set: {

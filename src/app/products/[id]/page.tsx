@@ -38,7 +38,6 @@ import { NonIngredientRow } from '../../../types/products';
 import {
   useClearMatch,
   useManualMatch,
-  useReject,
   useMarkNonIngredient,
   useUnclassifyNonIngredient,
 } from '../../../queries/matches';
@@ -67,7 +66,6 @@ export default function ProductDetailPage() {
   });
 
   const { mutate: doManualMatch, isPending: isManualing } = useManualMatch(id);
-  const { mutate: doReject, isPending: isRejecting } = useReject(id);
   const { mutateAsync: createAlias, isPending: creating } = useCreateAlias(() => {
     refetch();
   });
@@ -183,10 +181,6 @@ export default function ProductDetailPage() {
     );
   }
 
-  async function onReject(label: string, suggestions?: Suggestion[]) {
-    doReject({ label, suggestions: suggestions ?? [] });
-    refetch();
-  }
   async function onClear(label: string) {
     doClearMatch({ label });
     refetch();
@@ -222,7 +216,7 @@ export default function ProductDetailPage() {
     },
   };
 
-  if (isManualing || isRejecting || isClearing || markingNon || unclassifying) {
+  if (isManualing || isClearing || markingNon || unclassifying) {
     return <LinearProgress sx={{ m: 2 }} />;
   }
 
@@ -424,9 +418,6 @@ export default function ProductDetailPage() {
                         </Box>
 
                         <Stack direction="row" spacing={1} justifyContent="flex-end" flexWrap="wrap" sx={actionRowSx}>
-                          <Button size="small" variant="outlined" color="warning" onClick={() => onReject(m.product_ingredient, m.suggestions ?? [])}>
-                            Reject
-                          </Button>
                           <Button size="small" variant="outlined" color="inherit" onClick={() => onClear(m.product_ingredient)}>
                             Clear+Auto
                           </Button>

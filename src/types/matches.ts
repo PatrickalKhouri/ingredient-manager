@@ -1,6 +1,6 @@
 // src/types/matches.ts
 
-export type MatchStatus = 'auto' | 'manual' | 'rejected';
+export type MatchStatus = 'auto' | 'manual';
 export type MatchMethod = 'exact' | 'alias' | 'fuzzy' | 'token_set' | null;
 
 export interface MatchRow {
@@ -8,7 +8,7 @@ export interface MatchRow {
   product_ingredient: string;           // raw label from the product
   cosingId: string | null;              // matched COSING _id or null
   cosing_ingredient: string | null;     // matched COSING INCI name or null
-  status: MatchStatus;                  // auto | manual | rejected
+  status: MatchStatus;                  // auto | manual
   method: MatchMethod;                  // exact | alias | fuzzy | token_set | null
   score: number | null;                 // similarity/score if applicable
   position?: number;
