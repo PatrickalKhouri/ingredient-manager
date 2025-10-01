@@ -65,17 +65,13 @@ export default function ProductDetailPage() {
     setIsEditing(false);
   });
 
-  const { mutate: doManualMatch, isPending: isManualing } = useManualMatch(id);
-  const { mutateAsync: createAlias, isPending: creating } = useCreateAlias(() => {
-    refetch();
-  });
+  const { mutate: doManualMatch, isPending: isManualing } = useManualMatch(() => refetch());
+  const { mutateAsync: createAlias, isPending: creating } = useCreateAlias(() => refetch());
   const { mutate: doClearMatch, isPending: isClearing } = useClearMatch(id);
   
-
   // NEW: non-ingredient classify / unclassify
   const { mutate: doMarkNonIng, isPending: markingNon } = useMarkNonIngredient(() => refetch());
   const { mutate: doUnclassify, isPending: unclassifying } = useUnclassifyNonIngredient(() => refetch());
-
 
   const computedIngredientsLine = useMemo(() => {
     if (Array.isArray(data?.ingredientsRaw) && data.ingredientsRaw.length) {
@@ -84,17 +80,15 @@ export default function ProductDetailPage() {
     return '';
   }, [data?.ingredientsRaw]);
 
-  // 2) Local UI state for editing
+  // Editable ingredients
   const [isEditing, setIsEditing] = useState(false);
   const [displayLine, setDisplayLine] = useState(computedIngredientsLine);
   const [editedText, setEditedText] = useState(computedIngredientsLine);
 
-  // Keep UI in sync when navigating or refetching
   useEffect(() => {
     setDisplayLine(computedIngredientsLine);
     if (!isEditing) setEditedText(computedIngredientsLine);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [computedIngredientsLine]);
+  }, [computedIngredientsLine, isEditing]);
 
   const onEdit = () => {
     setEditedText(displayLine);
@@ -104,7 +98,6 @@ export default function ProductDetailPage() {
     setEditedText(displayLine);
     setIsEditing(false);
   };
-
   const onSave = () => {
     const next = (editedText ?? '').trim();
     if (!next.length || next === displayLine.trim()) {
@@ -115,6 +108,7 @@ export default function ProductDetailPage() {
     setDisplayLine(next);
   };
 
+  // Alias dialog state
   const [openAlias, setOpenAlias] = useState(false);
   const [aliasPi, setAliasPi] = useState<{ label: string } | null>(null);
   const [aliasText, setAliasText] = useState('');
@@ -122,6 +116,15 @@ export default function ProductDetailPage() {
   const [aliasOptions, setAliasOptions] = useState<Array<{ id: string; inciName: string; score?: number }>>([]);
   const [aliasChosen, setAliasChosen] = useState<{ id: string; inciName: string } | null>(null);
 
+  // Manual dialog state
+  const [openManual, setOpenManual] = useState(false);
+  const [manualLabel, setManualLabel] = useState<string | null>(null);
+  const [manualText, setManualText] = useState('');
+  const [manualQuery, setManualQuery] = useState('');
+  const [manualOptions, setManualOptions] = useState<Array<{ id: string; inciName: string }>>([]);
+  const [manualChosen, setManualChosen] = useState<{ id: string; inciName: string } | null>(null);
+
+  // Alias CosIng search
   useEffect(() => {
     let active = true;
     if (!openAlias || aliasQuery.trim().length < 2) { setAliasOptions([]); return; }
@@ -134,22 +137,35 @@ export default function ProductDetailPage() {
     return () => { active = false; };
   }, [openAlias, aliasQuery]);
 
+  // Manual CosIng search
+  useEffect(() => {
+    let active = true;
+    if (!openManual || manualQuery.trim().length < 2) { setManualOptions([]); return; }
+    (async () => {
+      try {
+        const res = await searchCosing(manualQuery);
+        if (active) setManualOptions(res as Array<{ id: string; inciName: string }>);
+      } catch {}
+    })();
+    return () => { active = false; };
+  }, [openManual, manualQuery]);
+
   const filteredMatches = useMemo(() => {
     if (!data) return [];
     if (filter === 'unmatched') return [];
     if (filter === 'non_ingredient') return [];
+  
     let list = [...data.matches];
-
-    if (filter === 'exact' || filter === 'alias') {
-      list = list.filter((m) => m.method === filter);
+  
+    if (filter === 'exact') {
+      list = list.filter((m) => m.method === 'exact');
+    } else if (filter === 'alias') {
+      list = list.filter((m) => m.method === 'alias');
     } else if (filter === 'manual') {
-      list = list.filter((m) => m.status === 'manual');
-    } else if (filter === 'auto') {
-      list = list.filter((m) => m.status === 'auto');
-    } else if (filter === 'fuzzy') {
-      list = list.filter((m) => m.method === 'fuzzy');
+      list = list.filter((m) => m.method === 'manual');
     }
-
+    // no auto / fuzzy anymore
+  
     switch (sortBy) {
       case 'scoreDesc':
         list.sort((a, b) => (b.score ?? -1) - (a.score ?? -1));
@@ -160,19 +176,17 @@ export default function ProductDetailPage() {
       case 'alpha':
         list.sort((a, b) => a.product_ingredient.localeCompare(b.product_ingredient));
         break;
-      case 'position':
       default:
         break;
     }
     return list;
-  }, [data, filter, sortBy]);
+  }, [data, filter, sortBy])
 
-  const showUnmatched = filter === 'all' || filter === 'unmatched' || filter === 'fuzzy';
+  const showUnmatched = filter === 'all' || filter === 'unmatched';
   const showNonIngredients = filter === 'all' || filter === 'non_ingredient';
 
   if (!id) return <Typography sx={{ m: 2 }}>Invalid product id</Typography>;
   if (isLoading) return <LinearProgress sx={{ m: 2 }} />;
-
   if (isError || !data) {
     return (
       <Alert severity="error" sx={{ m: 2 }}>
@@ -181,7 +195,7 @@ export default function ProductDetailPage() {
     );
   }
 
-  async function onClear(label: string) {
+  function onClear(label: string) {
     doClearMatch({ label });
     refetch();
   }
@@ -206,6 +220,31 @@ export default function ProductDetailPage() {
     setAliasQuery('');
     setAliasOptions([]);
   }
+  function openManualFor(label: string) {
+    setManualLabel(label);
+    setManualText(label);
+    setManualChosen(null);
+    setManualQuery('');
+    setManualOptions([]);
+    setOpenManual(true);
+  }
+  async function onManualSubmit() {
+    if (!manualText.trim() || !manualChosen) return;
+    doManualMatch({
+      productId: id,
+      label: manualText.trim(),
+      cosingId: manualChosen.id,
+      method: 'manual',
+    });
+    setOpenManual(false);
+    setManualText('');
+    setManualChosen(null);
+    setManualQuery('');
+    setManualOptions([]);
+    refetch();
+  }
+
+  console.log('filteredMatches', filteredMatches);
 
   const title = slugToTitle(data.slug);
 
@@ -268,18 +307,11 @@ export default function ProductDetailPage() {
                 fullWidth
                 placeholder="Type ingredients separated by commas (e.g., Water, Glycerin, Aloe)…"
               />
-
               <Stack direction="row" spacing={1}>
-                <Button
-                  variant="contained"
-                  onClick={onSave}
-                  disabled={editedText.trim() === displayLine.trim()}
-                >
+                <Button variant="contained" onClick={onSave} disabled={editedText.trim() === displayLine.trim()}>
                   Save
                 </Button>
-                <Button variant="text" onClick={onCancel}>
-                  Cancel
-                </Button>
+                <Button variant="text" onClick={onCancel}>Cancel</Button>
               </Stack>
             </Stack>
           ) : (
@@ -301,22 +333,20 @@ export default function ProductDetailPage() {
         flexWrap="wrap"
         sx={{ mt: 2 }}
       >
-        <ToggleButtonGroup
-          size="small"
-          exclusive
-          value={filter}
-          onChange={(_, v) => v && setFilter(v)}
-          sx={{ flexWrap: { xs: 'nowrap', md: 'wrap' } }}
-        >
-          <ToggleButton value="all">ALL</ToggleButton>
-          <ToggleButton value="exact">EXACT</ToggleButton>
-          <ToggleButton value="alias">ALIAS</ToggleButton>
-          <ToggleButton value="fuzzy">FUZZY</ToggleButton>
-          <ToggleButton value="manual">MANUAL</ToggleButton>
-          <ToggleButton value="auto">AUTO</ToggleButton>
-          <ToggleButton value="unmatched">UNMATCHED</ToggleButton>
-          <ToggleButton value="non_ingredient">NON-INGREDIENT</ToggleButton>
-        </ToggleButtonGroup>
+      <ToggleButtonGroup
+        size="small"
+        exclusive
+        value={filter}
+        onChange={(_, v) => v && setFilter(v)}
+        sx={{ flexWrap: { xs: 'nowrap', md: 'wrap' } }}
+      >
+        <ToggleButton value="all">ALL</ToggleButton>
+        <ToggleButton value="exact">EXACT</ToggleButton>
+        <ToggleButton value="alias">ALIAS</ToggleButton>
+        <ToggleButton value="manual">MANUAL</ToggleButton>
+        <ToggleButton value="unmatched">UNMATCHED</ToggleButton>
+        <ToggleButton value="non_ingredient">NON-INGREDIENT</ToggleButton>
+      </ToggleButtonGroup>
 
         <Box flexGrow={1} />
 
@@ -353,12 +383,7 @@ export default function ProductDetailPage() {
                         display="grid"
                         alignItems="center"
                         gap={1.25}
-                        sx={{
-                          gridTemplateColumns: {
-                            xs: '1fr',
-                            md: '1fr minmax(420px, 520px)',
-                          },
-                        }}
+                        sx={{ gridTemplateColumns: { xs: '1fr', md: '1fr minmax(420px, 520px)' } }}
                       >
                         <Box>
                           <Typography fontWeight={600}>{m.product_ingredient}</Typography>
@@ -370,53 +395,8 @@ export default function ProductDetailPage() {
                             {typeof m.score === 'number' && (
                               <Chip size="small" variant="outlined" label={`score ${m.score.toFixed(2)}`} />
                             )}
-                            {m.status === 'manual' && <Chip size="small" color="secondary" label="manual" />}
                           </Stack>
-
-                          {!!m.functions?.length && (
-                            <Stack direction="row" spacing={0.75} alignItems="center" flexWrap="wrap" sx={{ mt: 1 }}>
-                              <Typography variant="caption" color="text.secondary" sx={{ mr: 0.5 }}>
-                                Functions:
-                              </Typography>
-                              {m.functions.map((fn, i) => (
-                                <Chip
-                                  key={`fn-${fn}-${i}`}
-                                  size="small"
-                                  variant="outlined"
-                                  label={fn}
-                                  sx={{ borderStyle: 'dashed', fontSize: '0.72rem', height: 22 }}
-                                />
-                              ))}
-                            </Stack>
-                          )}
-
-                          {(() => {
-                            const filtered =
-                              (m.concerns ?? []).filter((c: Concerns) => {
-                                const lvl = String(c?.level ?? '').toLowerCase();
-                                return lvl === 'moderate' || lvl === 'high';
-                              }) || [];
-                            if (!filtered.length) return null;
-                            return (
-                              <Stack direction="row" spacing={0.75} alignItems="center" flexWrap="wrap" sx={{ mt: 1 }}>
-                                <Typography variant="caption" color="text.secondary" sx={{ mr: 0.5 }}>
-                                  Concerns:
-                                </Typography>
-                                {filtered.map((c: Concerns, i: number) => (
-                                  <Chip
-                                    key={`concern-${c.concern ?? 'unknown'}-${i}`}
-                                    size="small"
-                                    variant="filled"
-                                    color={String(c.level).toLowerCase() === 'high' ? 'error' : 'warning'}
-                                    label={`${c.concern ?? 'Concern'} • ${String(c.level).toLowerCase()}`}
-                                    sx={{ fontWeight: 600, height: 22 }}
-                                  />
-                                ))}
-                              </Stack>
-                            );
-                          })()}
                         </Box>
-
                         <Stack direction="row" spacing={1} justifyContent="flex-end" flexWrap="wrap" sx={actionRowSx}>
                           <Button size="small" variant="outlined" color="inherit" onClick={() => onClear(m.product_ingredient)}>
                             Clear+Auto
@@ -444,19 +424,14 @@ export default function ProductDetailPage() {
                   <Stack divider={<Divider flexItem />} spacing={2}>
                     {data.unmatched.map((u, idx) => {
                       const sugg = u.suggestions ?? [];
-                      const matchId = (u as unknown as NonIngredientRow).matchId as string | undefined; // backend now provides this when possible
+                      const matchId = (u as unknown as NonIngredientRow).matchId as string | undefined;
                       return (
                         <Box
                           key={`${u.product_ingredient}-${idx}`}
                           display="grid"
                           alignItems="start"
                           gap={1.5}
-                          sx={{
-                            gridTemplateColumns: {
-                              xs: '1fr',
-                              md: '1fr minmax(360px, 460px)',
-                            },
-                          }}
+                          sx={{ gridTemplateColumns: { xs: '1fr', md: '1fr minmax(360px, 460px)' } }}
                         >
                           <Box>
                             <Typography fontWeight={600}>{u.product_ingredient}</Typography>
@@ -477,7 +452,6 @@ export default function ProductDetailPage() {
                               <Typography color="text.secondary">No suggestions found.</Typography>
                             )}
                           </Box>
-
                           <Stack direction="row" spacing={1} justifyContent="flex-end" flexWrap="wrap" sx={actionRowSx}>
                             <Button size="small" variant="outlined" onClick={() => openAliasFor(u.product_ingredient)}>
                               Create alias…
@@ -485,17 +459,22 @@ export default function ProductDetailPage() {
                             <Button size="small" variant="outlined" color="inherit" onClick={() => onClear(u.product_ingredient)}>
                               Auto
                             </Button>
-                            {/* NEW: mark non-ingredient */}
                             <Button
                               size="small"
                               variant="outlined"
                               color="warning"
                               disabled={!matchId}
-                              onClick={() => {
-                                if (matchId) doMarkNonIng({ matchId, productId: id });
-                              }}
+                              onClick={() => { if (matchId) doMarkNonIng({ matchId, productId: id }); }}
                             >
                               Mark non-ingredient
+                            </Button>
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              color="secondary"
+                              onClick={() => openManualFor(u.product_ingredient)}
+                            >
+                              Manual
                             </Button>
                           </Stack>
                         </Box>
@@ -521,21 +500,11 @@ export default function ProductDetailPage() {
                         display="grid"
                         alignItems="center"
                         gap={1.25}
-                        sx={{
-                          gridTemplateColumns: {
-                            xs: '1fr',
-                            md: '1fr minmax(220px, 260px)',
-                          },
-                        }}
+                        sx={{ gridTemplateColumns: { xs: '1fr', md: '1fr minmax(220px, 260px)' } }}
                       >
                         <Typography fontWeight={600}>{ni.product_ingredient}</Typography>
                         <Stack direction="row" spacing={1} justifyContent="flex-end" flexWrap="wrap" sx={actionRowSx}>
-                          <Button
-                            size="small"
-                            variant="outlined"
-                            color="secondary"
-                            onClick={() => doUnclassify(matchId)}
-                          >
+                          <Button size="small" variant="outlined" color="secondary" onClick={() => doUnclassify(matchId)}>
                             Unclassify
                           </Button>
                         </Stack>
@@ -557,8 +526,7 @@ export default function ProductDetailPage() {
             Ingredient label from product: <strong>{aliasPi?.label}</strong>
           </Typography>
           <TextField
-            fullWidth
-            sx={{ mt: 2 }}
+            fullWidth sx={{ mt: 2 }}
             label="Alias text"
             value={aliasText}
             onChange={(e) => setAliasText(e.target.value)}
@@ -584,6 +552,44 @@ export default function ProductDetailPage() {
           <Button onClick={() => setOpenAlias(false)}>Cancel</Button>
           <Button onClick={onAliasSubmit} variant="contained" disabled={!aliasText?.trim() || !aliasChosen || creating}>
             Save & Rematch
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Manual match dialog */}
+      <Dialog open={openManual} onClose={() => setOpenManual(false)} fullWidth maxWidth="sm">
+        <DialogTitle>Manual Match (exception)</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" gutterBottom>
+            Ingredient label from product: <strong>{manualLabel}</strong>
+          </Typography>
+          <TextField
+            fullWidth sx={{ mt: 2 }}
+            label="Ingredient text"
+            value={manualText}
+            onChange={(e) => setManualText(e.target.value)}
+            helperText="Confirm or adjust the ingredient label."
+          />
+          <Autocomplete
+            sx={{ mt: 2 }}
+            options={manualOptions}
+            getOptionLabel={(o) => o.inciName}
+            onChange={(_, v) => setManualChosen(v ? { id: v.id, inciName: v.inciName } : null)}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Map ingredient to CosIng"
+                value={manualQuery}
+                onChange={(e) => setManualQuery(e.target.value)}
+                helperText="Type at least 2 characters to search"
+              />
+            )}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenManual(false)}>Cancel</Button>
+          <Button onClick={onManualSubmit} variant="contained" disabled={!manualText?.trim() || !manualChosen}>
+            Save Manual Match
           </Button>
         </DialogActions>
       </Dialog>

@@ -15,22 +15,25 @@ function useInvalidateProductDetail() {
   );
 }
 
-export function useManualMatch(productId: string, onSuccess?: () => void) {
+// queries/matches.ts
+export function useManualMatch(onSuccess?: () => void) {
   const invalidate = useInvalidateProductDetail();
   return useMutation({
     mutationFn: (payload: {
+      productId: string;
       label: string;
       cosingId: string;
       score?: number | null;
       method?: MatchMethod;
       suggestions?: Suggestion[];
-    }) => manualMatch({ productId, ...payload }),
-    onSuccess: () => {
-      invalidate(productId);
+    }) => manualMatch(payload),
+    onSuccess: (_, vars) => {
+      invalidate(vars.productId);
       onSuccess?.();
     },
   });
 }
+
 
 export function useClearMatch(productId: string) {
   const invalidate = useInvalidateProductDetail();
