@@ -6,4 +6,6 @@ export const matchesService = {
   clear:       (b: any) => matchesRepo.clear(b),
   setClassification: (matchId: string, classification: 'ingredient' | 'non_ingredient') =>
     matchesRepo.setClassification(matchId, classification),
+  cleanupGhostMatches: (productId: string, savedList: string[]) =>
+    matchesRepo.cleanupGhostMatches(productId, savedList),
 };

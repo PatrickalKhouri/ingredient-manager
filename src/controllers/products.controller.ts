@@ -1,5 +1,6 @@
 import type { Request, Response } from 'express';
 import { productsService } from '../services/products.service';
+import { matchesService } from '../services/matches.service';
 
 export async function listProducts(req: Request, res: Response) {
   const q = (req as any).validated?.query ?? req.query;
@@ -29,10 +30,12 @@ export async function match(req: Request, res: Response) {
 export async function updateIngredientsAndRematch(req: Request, res: Response) {
   const params = (req as any).validated?.params ?? req.params;
   const body = (req as any).validated?.body ?? req.body;
-
-  const productId = (params as any).productId as string;
+  const productId = params.productId as string;
 
   const { savedList } = await productsService.updateIngredients(productId, body);
+
+
+  await matchesService.cleanupGhostMatches(productId, savedList);
 
   const matchResult = await productsService.matchProduct(productId);
 
@@ -44,3 +47,4 @@ export async function updateIngredientsAndRematch(req: Request, res: Response) {
     matchResult,
   });
 }
+
