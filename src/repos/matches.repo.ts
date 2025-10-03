@@ -36,7 +36,8 @@ async function setMatch({
   const { matches } = await getCollections();
   const labelNorm = normalizeLabel(label);
 
-  await matches.deleteOne({ productId, labelNormalized: labelNorm });
+  const match = await matches.findOne({ productId, labelNormalized: labelNorm });
+  await matches.deleteOne({ _id : match?._id });
 
   const now = new Date();
   const doc = {
@@ -49,7 +50,7 @@ async function setMatch({
     method,
     score: score ?? null,
     suggestions: suggestions ?? [],
-    classification: 'ingredient' as const, // align with schema default
+    classification: match?.classification ? match.classification : 'ingredient' as const,
     createdAt: now,
     updatedAt: now,
   };
@@ -173,6 +174,8 @@ export const matchesRepo = {
 
     const inciArr: string[] = Array.isArray((product as any).inci) ? (product as any).inci : [];
     const pis = inciArr.map((inci) => ({ normalizedText: normalizeIngredient(inci) }));
+    
+
 
     for (const pi of pis) {
       await autoMatchOne(pi.normalizedText, String(_id));
@@ -347,5 +350,23 @@ export const matchesRepo = {
     );
   
     return { ok: res.modifiedCount > 0, updated: res.modifiedCount };
+  },
+
+  async cleanupGhostMatches(productId: string, currentInciList: string[]) {
+    const { matches } = await getCollections();
+  
+    const normalizedSet = new Set(currentInciList.map(normalizeIngredient));
+  
+    const ghostMatches = await matches.find({
+      productId,
+      labelNormalized: { $nin: Array.from(normalizedSet) },
+    }).toArray();
+
+    console.log('ghostMatches', ghostMatches);
+
+    await matches.deleteMany({
+      productId,
+      labelNormalized: { $nin: Array.from(normalizedSet) },
+    });
   }
 };
